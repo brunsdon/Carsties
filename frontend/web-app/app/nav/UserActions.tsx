@@ -5,7 +5,7 @@ import { Dropdown, DropdownDivider, DropdownItem } from 'flowbite-react'
 import { User } from 'next-auth';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React from 'react'
 import { AiFillCar, AiFillTrophy, AiOutlineLogout } from 'react-icons/ai';
 import { HiCog, HiUser } from 'react-icons/hi2';
