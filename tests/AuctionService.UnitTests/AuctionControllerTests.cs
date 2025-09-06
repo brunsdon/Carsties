@@ -92,17 +92,129 @@ public class AuctionControllerTests
     public async Task CreateAuction_WithValidCreateAuctionDto_ReturnsCreatedAtAction()
     {
         // Given
-        var auction = _fixture.Create<CreateAuctionDto>();
+        var auctionDto = _fixture.Create<CreateAuctionDto>();
         _auctionRepo.Setup(repo => repo.AddAuction(It.IsAny<Auction>()));
         _auctionRepo.Setup(repo => repo.SaveChangesAsync()).ReturnsAsync(true);
 
         // When
-        var result = await _controller.CreateAuction(auction);
+        var result = await _controller.CreateAuction(auctionDto);
         var createdResult = result.Result as CreatedAtActionResult;
 
         // Then
         Assert.NotNull(createdResult);
         Assert.Equal("GetAuctionById", createdResult.ActionName);
         Assert.IsType<AuctionDto>(createdResult.Value);
+    }
+
+    [Fact]
+    public async Task CreateAuction_FailedSave_Returns400BadRequest()
+    {
+        // Given
+        var auctionDto = _fixture.Create<CreateAuctionDto>();
+        _auctionRepo.Setup(repo => repo.AddAuction(It.IsAny<Auction>()));
+        _auctionRepo.Setup(repo => repo.SaveChangesAsync()).ReturnsAsync(false);
+
+        // When
+        var result = await _controller.CreateAuction(auctionDto);
+
+        // Then
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task UpdateAuction_WithUpdateAuctionDto_ReturnsOkResponse()
+    {
+        // Given
+        var auction = _fixture.Build<Auction>().Without(x => x.Item).Create();
+        auction.Item = _fixture.Build<Item>().Without(x => x.Auction).Create();
+        auction.Seller = "test";
+        var updateDto = _fixture.Create<UpdateAuctionDto>();
+        _auctionRepo.Setup(repo => repo.GetAuctionEntityById(It.IsAny<Guid>())).ReturnsAsync(auction);
+        _auctionRepo.Setup(repo => repo.SaveChangesAsync()).ReturnsAsync(true);
+
+        // When
+        var result = await _controller.UpdateAuction(auction.Id, updateDto);
+
+        // Then
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateAuction_WithInvalidUser_Returns403Forbid()
+    {
+        // Given
+        var auction = _fixture.Build<Auction>().Without(x => x.Item).Create();
+        auction.Seller = "not-test";
+        var updateDto = _fixture.Create<UpdateAuctionDto>();
+        _auctionRepo.Setup(repo => repo.GetAuctionEntityById(It.IsAny<Guid>())).ReturnsAsync(auction);
+
+        // When
+        var result = await _controller.UpdateAuction(auction.Id, updateDto);
+
+        // Then
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateAuction_WithInvalidGuid_ReturnsNotFound()
+    {
+        // Given
+        var auction = _fixture.Build<Auction>().Without(x => x.Item).Create();
+        var updateDto = _fixture.Create<UpdateAuctionDto>();
+        _auctionRepo.Setup(repo => repo.GetAuctionEntityById(It.IsAny<Guid>())).ReturnsAsync(value: null);
+
+        // When
+        var result = await _controller.UpdateAuction(auction.Id, updateDto);
+
+        // Then
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteAuction_WithValidUser_ReturnsOkResponse()
+    {
+        // Given
+        var auction = _fixture.Build<Auction>().Without(x => x.Item).Create();
+        auction.Seller = "test";
+
+        _auctionRepo.Setup(repo => repo.GetAuctionEntityById(It.IsAny<Guid>())).ReturnsAsync(auction);
+        _auctionRepo.Setup(repo => repo.SaveChangesAsync()).ReturnsAsync(true);
+
+        // When
+        var result = await _controller.DeleteAuction(auction.Id);
+
+        // Then
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteAuction_WithInvalidGuid_Returns404Response()
+    {
+        // Given
+        var auction = _fixture.Build<Auction>().Without(x => x.Item).Create();
+
+        _auctionRepo.Setup(repo => repo.GetAuctionEntityById(It.IsAny<Guid>())).ReturnsAsync(value: null);
+
+        // When
+        var result = await _controller.DeleteAuction(auction.Id);
+
+        // Then
+        Assert.IsType<NotFoundResult>(result);
+    }
+    
+        [Fact]
+    public async Task DeleteAuction_WithInvalidUser_Returns403Response()
+    {
+        // Given
+        var auction = _fixture.Build<Auction>().Without(x => x.Item).Create();
+        auction.Seller = "not-test";
+
+        _auctionRepo.Setup(repo => repo.GetAuctionEntityById(It.IsAny<Guid>())).ReturnsAsync(auction);
+
+        // When
+        var result = await _controller.DeleteAuction(auction.Id);
+
+        // Then
+        Assert.IsType<ForbidResult>(result);
     }
 }
